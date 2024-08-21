@@ -36,8 +36,8 @@
             height: 10,
             color: '#EA4335',
             helmetColor: '#B23121',
-            speed: 1.5,
-            approachSpeed: 0.2
+            speed: 1.2,
+            approachSpeed: 0.15
         }];
 
         const ball = {
@@ -50,7 +50,9 @@
         let gameState = 'playing';
         let level = 1;
         let celebrationFrame = 0;
+        let tackleFrame = 0;
         const celebrationDuration = 60;
+        const tackleDuration = 30;
 
         function drawRect(x, y, width, height, color) {
             ctx.fillStyle = color;
@@ -129,14 +131,14 @@
                     height: 10,
                     color: '#EA4335',
                     helmetColor: '#B23121',
-                    speed: 1.5,
-                    approachSpeed: 0.2
+                    speed: 1.2,
+                    approachSpeed: 0.15
                 });
             }
             resetPositions();
             defenders.forEach(defender => {
-                defender.speed = Math.min(1.5 + level * 0.1, 3);
-                defender.approachSpeed = Math.min(0.2 + level * 0.05, 0.5);
+                defender.speed = Math.min(1.2 + level * 0.08, 2.5);
+                defender.approachSpeed = Math.min(0.15 + level * 0.03, 0.4);
             });
         }
 
@@ -159,19 +161,37 @@
             ctx.fillText('TOUCHDOWN!', centerX, centerY);
         }
 
-        function update() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+        function drawTackle() {
+            const progress = tackleFrame / tackleDuration;
+            const shakeAmount = Math.sin(progress * Math.PI * 10) * 3 * (1 - progress);
+            
+            ctx.save();
+            ctx.translate(shakeAmount, shakeAmount);
             drawField();
             drawPlayer();
             drawDefenders();
             drawBall();
-            drawLevel();
+            ctx.restore();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 0, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('TACKLED!', canvas.width / 2, canvas.height / 2);
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (gameState === 'playing') {
+                drawField();
+                drawPlayer();
+                drawDefenders();
+                drawBall();
+                drawLevel();
+
                 defenders.forEach(defender => {
-                    if (defender.y < player.y) defender.y += defender.speed;
-                    if (defender.y > player.y) defender.y -= defender.speed;
+                    if (defender.y < player.y - 5) defender.y += defender.speed;
+                    if (defender.y > player.y + 5) defender.y -= defender.speed;
                     
                     defender.x -= defender.approachSpeed;
                     if (defender.x < 0) defender.x = canvas.width;
@@ -186,9 +206,15 @@
                 }
 
                 if (defenders.some(checkCollision)) {
-                    resetPositions();
+                    gameState = 'tackled';
+                    tackleFrame = 0;
                 }
             } else if (gameState === 'celebrating') {
+                drawField();
+                drawPlayer();
+                drawDefenders();
+                drawBall();
+                drawLevel();
                 drawCelebration();
                 celebrationFrame++;
 
@@ -196,10 +222,20 @@
                     nextLevel();
                     gameState = 'playing';
                 }
+            } else if (gameState === 'tackled') {
+                drawTackle();
+                tackleFrame++;
+
+                if (tackleFrame >= tackleDuration) {
+                    resetPositions();
+                    gameState = 'playing';
+                }
             } else {
+                drawField();
                 ctx.font = '16px Arial';
                 ctx.fillStyle = '#FFFFFF';
-                ctx.fillText('Game Over!', 90, 50);
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
             }
 
             requestAnimationFrame(update);
@@ -222,8 +258,8 @@
                     height: 10,
                     color: '#EA4335',
                     helmetColor: '#B23121',
-                    speed: 1.5,
-                    approachSpeed: 0.2
+                    speed: 1.2,
+                    approachSpeed: 0.15
                 }];
                 resetPositions();
                 gameState = 'playing';
