@@ -27,7 +27,7 @@
             color: '#4285F4',
             helmetColor: '#3264A8',
             speed: 3,
-            runSpeed: 20  // Increased from 15 to 20
+            runSpeed: 20
         };
 
         const defenders = [{
@@ -55,7 +55,130 @@
         const celebrationDuration = 60;
         const caughtDuration = 30;
 
-        // ... [Previous drawing functions remain unchanged]
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawField() {
+            ctx.fillStyle = '#34A853';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i <= 10; i++) {
+                let x = i * 27;
+                ctx.strokeStyle = 'white';
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+        }
+
+        function drawCircle(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawPlayerWithHelmet(x, y, width, height, bodyColor, helmetColor) {
+            drawRect(x, y + 3, width, height - 3, bodyColor);
+            drawRect(x, y, width, 3, helmetColor);
+        }
+
+        function drawPlayer() {
+            drawPlayerWithHelmet(player.x, player.y, player.width, player.height, player.color, player.helmetColor);
+        }
+
+        function drawDefenders() {
+            defenders.forEach(defender => {
+                drawPlayerWithHelmet(defender.x, defender.y, defender.width, defender.height, defender.color, defender.helmetColor);
+            });
+        }
+
+        function drawBall() {
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function drawLevel() {
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(`Level: ${level}`, 5, 15);
+        }
+
+        function checkCollision(defender) {
+            return (player.x < defender.x + defender.width &&
+                    player.x + player.width > defender.x &&
+                    player.y < defender.y + defender.height &&
+                    player.y + player.height > defender.y);
+        }
+
+        function resetPositions() {
+            player.x = 20;
+            player.y = 46;
+            defenders.forEach((defender, index) => {
+                defender.x = 240 + index * 20;
+                defender.y = 46 + (index % 2) * 20;
+            });
+        }
+
+        function nextLevel() {
+            level++;
+            if (level === 3) {
+                defenders.push({
+                    x: 260,
+                    y: 66,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                });
+            }
+            resetPositions();
+            defenders.forEach(defender => {
+                defender.speed = Math.min(0.8 + level * 0.1, 2.0);
+                defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
+            });
+        }
+
+        function drawCelebration() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = 40;
+            const progress = celebrationFrame / celebrationDuration;
+            const radius = maxRadius * Math.sin(progress * Math.PI);
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('TOUCHDOWN!', centerX, centerY);
+        }
+
+        function drawCaught() {
+            const progress = caughtFrame / caughtDuration;
+            const shakeAmount = Math.sin(progress * Math.PI * 10) * 3 * (1 - progress);
+            
+            ctx.save();
+            ctx.translate(shakeAmount, shakeAmount);
+            drawField();
+            drawPlayer();
+            drawDefenders();
+            drawBall();
+            ctx.restore();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 0, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('CAUGHT!', canvas.width / 2, canvas.height / 2);
+        }
 
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -148,6 +271,7 @@
             }
         });
 
+        // Start the game loop
         update();
     </script>
 </body>
