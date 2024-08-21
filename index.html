@@ -121,8 +121,17 @@
 
         function nextLevel() {
             level++;
-            if (level === 4) {
-                defenders.push({...defenders[0], x: 260, y: 66});
+            if (level === 3) {
+                defenders.push({
+                    x: 260,
+                    y: 66,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 1.5,
+                    approachSpeed: 0.2
+                });
             }
             resetPositions();
             defenders.forEach(defender => {
