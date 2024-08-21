@@ -36,8 +36,8 @@
             height: 10,
             color: '#EA4335',
             helmetColor: '#B23121',
-            speed: 1.2,
-            approachSpeed: 0.15
+            speed: 0.8,
+            approachSpeed: 0.1
         }];
 
         const ball = {
@@ -131,14 +131,14 @@
                     height: 10,
                     color: '#EA4335',
                     helmetColor: '#B23121',
-                    speed: 1.2,
-                    approachSpeed: 0.15
+                    speed: 0.8,
+                    approachSpeed: 0.1
                 });
             }
             resetPositions();
             defenders.forEach(defender => {
-                defender.speed = Math.min(1.2 + level * 0.08, 2.5);
-                defender.approachSpeed = Math.min(0.15 + level * 0.03, 0.4);
+                defender.speed = Math.min(0.8 + level * 0.1, 2.0);
+                defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
             });
         }
 
@@ -190,8 +190,8 @@
                 drawLevel();
 
                 defenders.forEach(defender => {
-                    if (defender.y < player.y - 5) defender.y += defender.speed;
-                    if (defender.y > player.y + 5) defender.y -= defender.speed;
+                    if (defender.y < player.y - 8) defender.y += defender.speed;
+                    if (defender.y > player.y + 8) defender.y -= defender.speed;
                     
                     defender.x -= defender.approachSpeed;
                     if (defender.x < 0) defender.x = canvas.width;
@@ -258,8 +258,8 @@
                     height: 10,
                     color: '#EA4335',
                     helmetColor: '#B23121',
-                    speed: 1.2,
-                    approachSpeed: 0.15
+                    speed: 0.8,
+                    approachSpeed: 0.1
                 }];
                 resetPositions();
                 gameState = 'playing';
