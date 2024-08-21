@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Doodle Flag Football</title>
+    <style>
+        body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
+        canvas { border: 1px solid #000; }
+        #instructions { font-family: Arial, sans-serif; margin-top: 10px; text-align: center; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="272" height="92"></canvas>
+    <div id="instructions">
+        Move: Mouse Up/Down | Run: Click
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const player = {
+            x: 20,
+            y: 46,
+            width: 10,
+            height: 10,
+            color: '#4285F4',
+            helmetColor: '#3264A8',
+            speed: 3
+        };
+
+        const defenders = [{
+            x: 240,
+            y: 46,
+            width: 10,
+            height: 10,
+            color: '#EA4335',
+            helmetColor: '#B23121',
+            speed: 1.5,
+            approachSpeed: 0.2
+        }];
+
+        const ball = {
+            x: player.x + player.width,
+            y: player.y + player.height / 2,
+            radius: 2,
+            color: '#FBBC05'
+        };
+
+        let gameState = 'playing';
+        let level = 1;
+        let celebrationFrame = 0;
+        const celebrationDuration = 60;
+
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        function drawField() {
+            ctx.fillStyle = '#34A853';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i <= 10; i++) {
+                let x = i * 27;
+                ctx.strokeStyle = 'white';
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+        }
+
+        function drawCircle(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawPlayerWithHelmet(x, y, width, height, bodyColor, helmetColor) {
+            drawRect(x, y + 3, width, height - 3, bodyColor);
+            drawRect(x, y, width, 3, helmetColor);
+        }
+
+        function drawPlayer() {
+            drawPlayerWithHelmet(player.x, player.y, player.width, player.height, player.color, player.helmetColor);
+        }
+
+        function drawDefenders() {
+            defenders.forEach(defender => {
+                drawPlayerWithHelmet(defender.x, defender.y, defender.width, defender.height, defender.color, defender.helmetColor);
+            });
+        }
+
+        function drawBall() {
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function drawLevel() {
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(`Level: ${level}`, 5, 15);
+        }
+
+        function checkCollision(defender) {
+            return (player.x < defender.x + defender.width &&
+                    player.x + player.width > defender.x &&
+                    player.y < defender.y + defender.height &&
+                    player.y + player.height > defender.y);
+        }
+
+        function resetPositions() {
+            player.x = 20;
+            player.y = 46;
+            defenders.forEach((defender, index) => {
+                defender.x = 240 + index * 20;
+                defender.y = 46 + (index % 2) * 20;
+            });
+        }
+
+        function nextLevel() {
+            level++;
+            if (level === 4) {
+                defenders.push({...defenders[0], x: 260, y: 66});
+            }
+            resetPositions();
+            defenders.forEach(defender => {
+                defender.speed = Math.min(1.5 + level * 0.1, 3);
+                defender.approachSpeed = Math.min(0.2 + level * 0.05, 0.5);
+            });
+        }
+
+        function drawCelebration() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = 40;
+            const progress = celebrationFrame / celebrationDuration;
+            const radius = maxRadius * Math.sin(progress * Math.PI);
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('TOUCHDOWN!', centerX, centerY);
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            drawField();
+            drawPlayer();
+            drawDefenders();
+            drawBall();
+            drawLevel();
+
+            if (gameState === 'playing') {
+                defenders.forEach(defender => {
+                    if (defender.y < player.y) defender.y += defender.speed;
+                    if (defender.y > player.y) defender.y -= defender.speed;
+                    
+                    defender.x -= defender.approachSpeed;
+                    if (defender.x < 0) defender.x = canvas.width;
+                });
+
+                ball.x = player.x + player.width;
+                ball.y = player.y + player.height / 2;
+
+                if (player.x + player.width >= canvas.width) {
+                    gameState = 'celebrating';
+                    celebrationFrame = 0;
+                }
+
+                if (defenders.some(checkCollision)) {
+                    resetPositions();
+                }
+            } else if (gameState === 'celebrating') {
+                drawCelebration();
+                celebrationFrame++;
+
+                if (celebrationFrame >= celebrationDuration) {
+                    nextLevel();
+                    gameState = 'playing';
+                }
+            } else {
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText('Game Over!', 90, 50);
+            }
+
+            requestAnimationFrame(update);
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            player.y = e.clientY - rect.top - player.height / 2;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameState === 'gameover') {
+                level = 1;
+                defenders = [{
+                    x: 240,
+                    y: 46,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 1.5,
+                    approachSpeed: 0.2
+                }];
+                resetPositions();
+                gameState = 'playing';
+            } else if (gameState === 'playing') {
+                player.x += 15;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            }
+        });
+
+        update();
+    </script>
+</body>
+</html>
