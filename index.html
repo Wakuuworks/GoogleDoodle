@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Doodle Flag Football</title>
+    <title>Google Flag Football Frenzy</title>
     <style>
         body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
         canvas { border: 1px solid #000; }
@@ -26,7 +26,8 @@
             height: 10,
             color: '#4285F4',
             helmetColor: '#3264A8',
-            speed: 3
+            speed: 3,
+            runSpeed: 20
         };
 
         const defenders = [{
@@ -47,37 +48,102 @@
             color: '#FBBC05'
         };
 
-        let gameState = 'playing';
+        let gameState = 'start';
         let level = 1;
         let celebrationFrame = 0;
         let caughtFrame = 0;
         const celebrationDuration = 60;
         const caughtDuration = 30;
 
-        // ... [Previous drawing functions remain unchanged]
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
 
-        function drawCaught() {
-            const progress = caughtFrame / caughtDuration;
-            const shakeAmount = Math.sin(progress * Math.PI * 10) * 3 * (1 - progress);
+        function drawField() {
+            ctx.fillStyle = '#34A853';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            ctx.save();
-            ctx.translate(shakeAmount, shakeAmount);
-            drawField();
-            drawPlayer();
-            drawDefenders();
-            drawBall();
-            ctx.restore();
+            for (let i = 0; i <= 10; i++) {
+                let x = i * 27;
+                ctx.strokeStyle = 'white';
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+        }
 
-            ctx.font = '20px Arial';
-            ctx.fillStyle = `rgba(255, 0, 0, ${1 - progress})`;
+        function drawCircle(x, y, radius, color) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        function drawPlayerWithHelmet(x, y, width, height, bodyColor, helmetColor) {
+            drawRect(x, y + 3, width, height - 3, bodyColor);
+            drawRect(x, y, width, 3, helmetColor);
+        }
+
+        function drawPlayer() {
+            drawPlayerWithHelmet(player.x, player.y, player.width, player.height, player.color, player.helmetColor);
+        }
+
+        function drawDefenders() {
+            defenders.forEach(defender => {
+                drawPlayerWithHelmet(defender.x, defender.y, defender.width, defender.height, defender.color, defender.helmetColor);
+            });
+        }
+
+        function drawBall() {
+            drawCircle(ball.x, ball.y, ball.radius, ball.color);
+        }
+
+        function drawLevel() {
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(`Level: ${level}`, 5, 15);
+        }
+
+        function drawStartScreen() {
+            ctx.fillStyle = '#34A853';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#FFFFFF';
             ctx.textAlign = 'center';
-            ctx.fillText('CAUGHT!', canvas.width / 2, canvas.height / 2);
+            ctx.fillText('Google Flag', canvas.width / 2, 30);
+            ctx.fillText('Football Frenzy', canvas.width / 2, 50);
+
+            ctx.fillStyle = '#4285F4';
+            ctx.fillRect(canvas.width / 2 - 30, 60, 60, 25);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText('Play', canvas.width / 2, 77);
+        }
+
+        function isPointInRect(x, y, rectX, rectY, rectWidth, rectHeight) {
+            return x >= rectX && x <= rectX + rectWidth &&
+                   y >= rectY && y <= rectY + rectHeight;
+        }
+
+        function resetGame() {
+            player.x = 20;
+            player.y = 46;
+            defenders[0].x = 240;
+            defenders[0].y = 46;
+            ball.x = player.x + player.width;
+            ball.y = player.y + player.height / 2;
+            level = 1;
         }
 
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (gameState === 'playing') {
+            if (gameState === 'start') {
+                drawStartScreen();
+            } else if (gameState === 'playing') {
                 drawField();
                 drawPlayer();
                 drawDefenders();
@@ -85,7 +151,7 @@
                 drawLevel();
 
                 defenders.forEach(defender => {
-                    const deadZone = 9;
+                    const deadZone = level === 1 ? 15 : 9;
                     if (defender.y < player.y - deadZone) defender.y += defender.speed;
                     if (defender.y > player.y + deadZone) defender.y -= defender.speed;
                     
@@ -105,39 +171,43 @@
                     gameState = 'caught';
                     caughtFrame = 0;
                 }
-            } else if (gameState === 'celebrating') {
-                drawField();
-                drawPlayer();
-                drawDefenders();
-                drawBall();
-                drawLevel();
-                drawCelebration();
-                celebrationFrame++;
-
-                if (celebrationFrame >= celebrationDuration) {
-                    nextLevel();
-                    gameState = 'playing';
-                }
-            } else if (gameState === 'caught') {
-                drawCaught();
-                caughtFrame++;
-
-                if (caughtFrame >= caughtDuration) {
-                    resetPositions();
-                    gameState = 'playing';
-                }
-            } else {
-                drawField();
-                ctx.font = '16px Arial';
-                ctx.fillStyle = '#FFFFFF';
-                ctx.textAlign = 'center';
-                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
             }
 
             requestAnimationFrame(update);
         }
 
-        // ... [Event listeners and other functions remain unchanged]
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if (gameState === 'start') {
+                if (isPointInRect(clickX, clickY, canvas.width / 2 - 30, 60, 60, 25)) {
+                    gameState = 'playing';
+                    resetGame();
+                    console.log('Game started');
+                }
+            } else if (gameState === 'playing') {
+                player.x += player.runSpeed;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState === 'playing') {
+                const rect = canvas.getBoundingClientRect();
+                player.y = e.clientY - rect.top - player.height / 2;
+                if (player.y < 0) player.y = 0;
+                if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+            }
+        });
+
+        function checkCollision(defender) {
+            return (player.x < defender.x + defender.width &&
+                    player.x + player.width > defender.x &&
+                    player.y < defender.y + defender.height &&
+                    player.y + player.height > defender.y);
+        }
 
         update();
     </script>
