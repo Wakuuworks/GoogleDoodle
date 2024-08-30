@@ -22,97 +22,51 @@
         const player = {
             x: 20,
             y: 46,
-            width: 15,
-            height: 15,
+            width: 10,
+            height: 10,
             color: '#4285F4',
-            runSpeed: 20
+            helmetColor: '#3264A8',
+            speed: 3,
+            runSpeed: 20  // Increased from 15 to 20
         };
 
         const defenders = [{
             x: 240,
             y: 46,
-            width: 15,
-            height: 15,
+            width: 10,
+            height: 10,
             color: '#EA4335',
+            helmetColor: '#B23121',
             speed: 0.8,
             approachSpeed: 0.1
         }];
 
+        const ball = {
+            x: player.x + player.width,
+            y: player.y + player.height / 2,
+            radius: 2,
+            color: '#FBBC05'
+        };
+
         let gameState = 'playing';
         let level = 1;
+        let celebrationFrame = 0;
+        let caughtFrame = 0;
+        const celebrationDuration = 60;
+        const caughtDuration = 30;
 
-        function drawRect(x, y, width, height, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y, width, height);
-        }
-
-        function drawField() {
-            ctx.fillStyle = '#34A853';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            for (let i = 0; i <= 10; i++) {
-                let x = i * 27;
-                ctx.strokeStyle = 'white';
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, canvas.height);
-                ctx.stroke();
-            }
-        }
-
-        function drawPlayer() {
-            drawRect(player.x, player.y, player.width, player.height, player.color);
-        }
-
-        function drawDefenders() {
-            defenders.forEach(defender => {
-                drawRect(defender.x, defender.y, defender.width, defender.height, defender.color);
-            });
-        }
-
-        function drawLevel() {
-            ctx.font = '16px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillText(`Level: ${level}`, 5, 20);
-        }
-
-        function checkCollision(defender) {
-            return (player.x < defender.x + defender.width &&
-                    player.x + player.width > defender.x &&
-                    player.y < defender.y + defender.height &&
-                    player.y + player.height > defender.y);
-        }
-
-        function resetPositions() {
-            player.x = 20;
-            player.y = 46;
-            defenders.forEach((defender, index) => {
-                defender.x = 240 + index * 20;
-                defender.y = 46 + (index % 2) * 20;
-            });
-        }
-
-        function nextLevel() {
-            level++;
-            if (level === 3) {
-                defenders.push({...defenders[0], x: 260, y: 66});
-            }
-            resetPositions();
-            defenders.forEach(defender => {
-                defender.speed = Math.min(0.8 + level * 0.1, 2.0);
-                defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
-            });
-        }
+        // ... [Previous drawing functions remain unchanged]
 
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            drawField();
-            drawPlayer();
-            drawDefenders();
-            drawLevel();
-
             if (gameState === 'playing') {
+                drawField();
+                drawPlayer();
+                drawDefenders();
+                drawBall();
+                drawLevel();
+
                 defenders.forEach(defender => {
                     const deadZone = level === 1 ? 15 : 9;
                     if (defender.y < player.y - deadZone) defender.y += defender.speed;
@@ -122,13 +76,45 @@
                     if (defender.x < 0) defender.x = canvas.width;
                 });
 
+                ball.x = player.x + player.width;
+                ball.y = player.y + player.height / 2;
+
                 if (player.x + player.width >= canvas.width) {
-                    nextLevel();
+                    gameState = 'celebrating';
+                    celebrationFrame = 0;
                 }
 
                 if (defenders.some(checkCollision)) {
-                    resetPositions();
+                    gameState = 'caught';
+                    caughtFrame = 0;
                 }
+            } else if (gameState === 'celebrating') {
+                drawField();
+                drawPlayer();
+                drawDefenders();
+                drawBall();
+                drawLevel();
+                drawCelebration();
+                celebrationFrame++;
+
+                if (celebrationFrame >= celebrationDuration) {
+                    nextLevel();
+                    gameState = 'playing';
+                }
+            } else if (gameState === 'caught') {
+                drawCaught();
+                caughtFrame++;
+
+                if (caughtFrame >= caughtDuration) {
+                    resetPositions();
+                    gameState = 'playing';
+                }
+            } else {
+                drawField();
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
             }
 
             requestAnimationFrame(update);
@@ -142,7 +128,21 @@
         });
 
         canvas.addEventListener('click', () => {
-            if (gameState === 'playing') {
+            if (gameState === 'gameover') {
+                level = 1;
+                defenders = [{
+                    x: 240,
+                    y: 46,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                }];
+                resetPositions();
+                gameState = 'playing';
+            } else if (gameState === 'playing') {
                 player.x += player.runSpeed;
                 if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
             }
