@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Flag Football Frenzy</title>
+    <title>Google Doodle Flag Football</title>
     <style>
         body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
         canvas { border: 1px solid #000; }
@@ -19,9 +19,35 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // ... [Previous player, defenders, ball, and game variables remain unchanged]
+        const player = {
+            x: 20,
+            y: 46,
+            width: 10,
+            height: 10,
+            color: '#4285F4',
+            helmetColor: '#3264A8',
+            speed: 3
+        };
 
-        let gameState = 'start';
+        const defenders = [{
+            x: 240,
+            y: 46,
+            width: 10,
+            height: 10,
+            color: '#EA4335',
+            helmetColor: '#B23121',
+            speed: 0.8,
+            approachSpeed: 0.1
+        }];
+
+        const ball = {
+            x: player.x + player.width,
+            y: player.y + player.height / 2,
+            radius: 2,
+            color: '#FBBC05'
+        };
+
+        let gameState = 'playing';
         let level = 1;
         let celebrationFrame = 0;
         let caughtFrame = 0;
@@ -29,44 +55,6 @@
         const caughtDuration = 30;
 
         // ... [Previous drawing functions remain unchanged]
-
-        function drawStartScreen() {
-            ctx.fillStyle = '#34A853';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Draw title
-            ctx.font = 'bold 16px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('Google Flag', canvas.width / 2, 30);
-            ctx.fillText('Football Frenzy', canvas.width / 2, 50);
-
-            // Draw play button
-            ctx.fillStyle = '#4285F4';
-            ctx.fillRect(canvas.width / 2 - 30, 60, 60, 25);
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillText('Play', canvas.width / 2, 77);
-        }
-
-        function drawCelebration() {
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const maxRadius = 40;
-            const progress = celebrationFrame / celebrationDuration;
-            const radius = maxRadius * Math.sin(progress * Math.PI);
-
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(255, 215, 0, ${1 - progress})`;
-            ctx.lineWidth = 3;
-            ctx.stroke();
-
-            ctx.font = '20px Arial';
-            ctx.fillStyle = `rgba(255, 215, 0, ${1 - progress})`;
-            ctx.textAlign = 'center';
-            ctx.fillText('TOUCHDOWN!', centerX, centerY);
-        }
 
         function drawCaught() {
             const progress = caughtFrame / caughtDuration;
@@ -86,17 +74,10 @@
             ctx.fillText('CAUGHT!', canvas.width / 2, canvas.height / 2);
         }
 
-        function isPointInRect(x, y, rectX, rectY, rectWidth, rectHeight) {
-            return x >= rectX && x <= rectX + rectWidth &&
-                   y >= rectY && y <= rectY + rectHeight;
-        }
-
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (gameState === 'start') {
-                drawStartScreen();
-            } else if (gameState === 'playing') {
+            if (gameState === 'playing') {
                 drawField();
                 drawPlayer();
                 drawDefenders();
@@ -104,10 +85,10 @@
                 drawLevel();
 
                 defenders.forEach(defender => {
-                    const deadZone = level === 1 ? 15 : 9;
+                    const deadZone = 9;
                     if (defender.y < player.y - deadZone) defender.y += defender.speed;
                     if (defender.y > player.y + deadZone) defender.y -= defender.speed;
-
+                    
                     defender.x -= defender.approachSpeed;
                     if (defender.x < 0) defender.x = canvas.width;
                 });
@@ -145,7 +126,7 @@
                     resetPositions();
                     gameState = 'playing';
                 }
-            } else if (gameState === 'gameover') {
+            } else {
                 drawField();
                 ctx.font = '16px Arial';
                 ctx.fillStyle = '#FFFFFF';
@@ -158,7 +139,6 @@
 
         // ... [Event listeners and other functions remain unchanged]
 
-        // Start the game loop
         update();
     </script>
 </body>
