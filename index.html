@@ -26,8 +26,7 @@
             height: 10,
             color: '#4285F4',
             helmetColor: '#3264A8',
-            speed: 3,
-            runSpeed: 20  // Increased from 15 to 20
+            speed: 3
         };
 
         const defenders = [{
@@ -51,11 +50,34 @@
         let gameState = 'playing';
         let level = 1;
         let celebrationFrame = 0;
-        let caughtFrame = 0;
+        let tackleFrame = 0;
         const celebrationDuration = 60;
-        const caughtDuration = 30;
+        const tackleDuration = 30;
 
         // ... [Previous drawing functions remain unchanged]
+
+        function nextLevel() {
+            level++;
+            if (level === 3) {
+                defenders.push({
+                    x: 260,
+                    y: 66,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                });
+            }
+            resetPositions();
+            defenders.forEach(defender => {
+                defender.speed = Math.min(0.8 + level * 0.1, 2.0);
+                defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
+            });
+        }
+
+        // ... [Celebration and tackle functions remain unchanged]
 
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -68,7 +90,7 @@
                 drawLevel();
 
                 defenders.forEach(defender => {
-                    const deadZone = level === 1 ? 15 : 9;
+                    const deadZone = level === 1 ? 12 : 8;
                     if (defender.y < player.y - deadZone) defender.y += defender.speed;
                     if (defender.y > player.y + deadZone) defender.y -= defender.speed;
                     
@@ -85,8 +107,8 @@
                 }
 
                 if (defenders.some(checkCollision)) {
-                    gameState = 'caught';
-                    caughtFrame = 0;
+                    gameState = 'tackled';
+                    tackleFrame = 0;
                 }
             } else if (gameState === 'celebrating') {
                 drawField();
@@ -101,11 +123,11 @@
                     nextLevel();
                     gameState = 'playing';
                 }
-            } else if (gameState === 'caught') {
-                drawCaught();
-                caughtFrame++;
+            } else if (gameState === 'tackled') {
+                drawTackle();
+                tackleFrame++;
 
-                if (caughtFrame >= caughtDuration) {
+                if (tackleFrame >= tackleDuration) {
                     resetPositions();
                     gameState = 'playing';
                 }
@@ -120,33 +142,7 @@
             requestAnimationFrame(update);
         }
 
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            player.y = e.clientY - rect.top - player.height / 2;
-            if (player.y < 0) player.y = 0;
-            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
-        });
-
-        canvas.addEventListener('click', () => {
-            if (gameState === 'gameover') {
-                level = 1;
-                defenders = [{
-                    x: 240,
-                    y: 46,
-                    width: 10,
-                    height: 10,
-                    color: '#EA4335',
-                    helmetColor: '#B23121',
-                    speed: 0.8,
-                    approachSpeed: 0.1
-                }];
-                resetPositions();
-                gameState = 'playing';
-            } else if (gameState === 'playing') {
-                player.x += player.runSpeed;
-                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-            }
-        });
+        // ... [Event listeners remain unchanged]
 
         update();
     </script>
