@@ -30,7 +30,7 @@
             runSpeed: 20
         };
 
-        let defenders = [{
+        const defenders = [{
             x: 240,
             y: 46,
             width: 10,
@@ -50,6 +50,10 @@
 
         let gameState = 'start';
         let level = 1;
+        let celebrationFrame = 0;
+        let caughtFrame = 0;
+        const celebrationDuration = 60;
+        const caughtDuration = 30;
 
         function drawRect(x, y, width, height, color) {
             ctx.fillStyle = color;
@@ -124,29 +128,14 @@
                    y >= rectY && y <= rectY + rectHeight;
         }
 
-        function resetPositions() {
+        function resetGame() {
             player.x = 20;
             player.y = 46;
-            defenders.forEach((defender, index) => {
-                defender.x = 240 + index * 20;
-                defender.y = 46 + (index % 2) * 20;
-            });
+            defenders[0].x = 240;
+            defenders[0].y = 46;
             ball.x = player.x + player.width;
             ball.y = player.y + player.height / 2;
-        }
-
-        function nextLevel() {
-            console.log(`Advancing to level ${level + 1}`);
-            level++;
-            resetPositions();
-            if (level === 3 && defenders.length === 1) {
-                defenders.push({...defenders[0], x: 260, y: 66});
-            }
-            defenders.forEach(defender => {
-                defender.speed = Math.min(0.8 + level * 0.1, 2.0);
-                defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
-            });
-            console.log(`Level ${level} started, ${defenders.length} defenders`);
+            level = 1;
         }
 
         function update() {
@@ -174,12 +163,13 @@
                 ball.y = player.y + player.height / 2;
 
                 if (player.x + player.width >= canvas.width) {
-                    nextLevel();
-                    resetPositions();
+                    gameState = 'celebrating';
+                    celebrationFrame = 0;
                 }
 
                 if (defenders.some(checkCollision)) {
-                    resetPositions();
+                    gameState = 'caught';
+                    caughtFrame = 0;
                 }
             }
 
@@ -194,7 +184,7 @@
             if (gameState === 'start') {
                 if (isPointInRect(clickX, clickY, canvas.width / 2 - 30, 60, 60, 25)) {
                     gameState = 'playing';
-                    resetPositions();
+                    resetGame();
                     console.log('Game started');
                 }
             } else if (gameState === 'playing') {
