@@ -26,7 +26,8 @@
             height: 10,
             color: '#4285F4',
             helmetColor: '#3264A8',
-            speed: 3
+            speed: 3,
+            runSpeed: 20  // Increased from 15 to 20
         };
 
         const defenders = [{
@@ -56,24 +57,6 @@
 
         // ... [Previous drawing functions remain unchanged]
 
-        function drawCaught() {
-            const progress = caughtFrame / caughtDuration;
-            const shakeAmount = Math.sin(progress * Math.PI * 10) * 3 * (1 - progress);
-            
-            ctx.save();
-            ctx.translate(shakeAmount, shakeAmount);
-            drawField();
-            drawPlayer();
-            drawDefenders();
-            drawBall();
-            ctx.restore();
-
-            ctx.font = '20px Arial';
-            ctx.fillStyle = `rgba(255, 0, 0, ${1 - progress})`;
-            ctx.textAlign = 'center';
-            ctx.fillText('CAUGHT!', canvas.width / 2, canvas.height / 2);
-        }
-
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -85,7 +68,7 @@
                 drawLevel();
 
                 defenders.forEach(defender => {
-                    const deadZone = 9;
+                    const deadZone = level === 1 ? 15 : 9;
                     if (defender.y < player.y - deadZone) defender.y += defender.speed;
                     if (defender.y > player.y + deadZone) defender.y -= defender.speed;
                     
@@ -137,7 +120,33 @@
             requestAnimationFrame(update);
         }
 
-        // ... [Event listeners and other functions remain unchanged]
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            player.y = e.clientY - rect.top - player.height / 2;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (gameState === 'gameover') {
+                level = 1;
+                defenders = [{
+                    x: 240,
+                    y: 46,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                }];
+                resetPositions();
+                gameState = 'playing';
+            } else if (gameState === 'playing') {
+                player.x += player.runSpeed;
+                if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            }
+        });
 
         update();
     </script>
