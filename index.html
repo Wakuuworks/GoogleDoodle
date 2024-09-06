@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Flag Football Frenzy</title>
+    <title>Google Doodle Flag Football</title>
     <style>
         body { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
         canvas { border: 1px solid #000; }
@@ -30,7 +30,7 @@
             runSpeed: 20
         };
 
-        let defenders = [{
+        const defenders = [{
             x: 240,
             y: 46,
             width: 10,
@@ -48,8 +48,12 @@
             color: '#FBBC05'
         };
 
-        let gameState = 'start';
+        let gameState = 'playing';
         let level = 1;
+        let celebrationFrame = 0;
+        let caughtFrame = 0;
+        const celebrationDuration = 60;
+        const caughtDuration = 30;
 
         function drawRect(x, y, width, height, color) {
             ctx.fillStyle = color;
@@ -102,26 +106,11 @@
             ctx.fillText(`Level: ${level}`, 5, 15);
         }
 
-        function drawStartScreen() {
-            ctx.fillStyle = '#34A853';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.font = 'bold 16px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.textAlign = 'center';
-            ctx.fillText('Google Flag', canvas.width / 2, 30);
-            ctx.fillText('Football Frenzy', canvas.width / 2, 50);
-
-            ctx.fillStyle = '#4285F4';
-            ctx.fillRect(canvas.width / 2 - 30, 60, 60, 25);
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fillText('Play', canvas.width / 2, 77);
-        }
-
-        function isPointInRect(x, y, rectX, rectY, rectWidth, rectHeight) {
-            return x >= rectX && x <= rectX + rectWidth &&
-                   y >= rectY && y <= rectY + rectHeight;
+        function checkCollision(defender) {
+            return (player.x < defender.x + defender.width &&
+                    player.x + player.width > defender.x &&
+                    player.y < defender.y + defender.height &&
+                    player.y + player.height > defender.y);
         }
 
         function resetPositions() {
@@ -131,30 +120,70 @@
                 defender.x = 240 + index * 20;
                 defender.y = 46 + (index % 2) * 20;
             });
-            ball.x = player.x + player.width;
-            ball.y = player.y + player.height / 2;
         }
 
         function nextLevel() {
-            console.log(`Advancing to level ${level + 1}`);
             level++;
-            resetPositions();
-            if (level === 3 && defenders.length === 1) {
-                defenders.push({...defenders[0], x: 260, y: 66});
+            if (level === 3) {
+                defenders.push({
+                    x: 260,
+                    y: 66,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                });
             }
+            resetPositions();
             defenders.forEach(defender => {
                 defender.speed = Math.min(0.8 + level * 0.1, 2.0);
                 defender.approachSpeed = Math.min(0.1 + level * 0.02, 0.3);
             });
-            console.log(`Level ${level} started, ${defenders.length} defenders`);
+        }
+
+        function drawCelebration() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = 40;
+            const progress = celebrationFrame / celebrationDuration;
+            const radius = maxRadius * Math.sin(progress * Math.PI);
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 215, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('TOUCHDOWN!', centerX, centerY);
+        }
+
+        function drawCaught() {
+            const progress = caughtFrame / caughtDuration;
+            const shakeAmount = Math.sin(progress * Math.PI * 10) * 3 * (1 - progress);
+            
+            ctx.save();
+            ctx.translate(shakeAmount, shakeAmount);
+            drawField();
+            drawPlayer();
+            drawDefenders();
+            drawBall();
+            ctx.restore();
+
+            ctx.font = '20px Arial';
+            ctx.fillStyle = `rgba(255, 0, 0, ${1 - progress})`;
+            ctx.textAlign = 'center';
+            ctx.fillText('CAUGHT!', canvas.width / 2, canvas.height / 2);
         }
 
         function update() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            if (gameState === 'start') {
-                drawStartScreen();
-            } else if (gameState === 'playing') {
+            if (gameState === 'playing') {
                 drawField();
                 drawPlayer();
                 drawDefenders();
@@ -174,51 +203,75 @@
                 ball.y = player.y + player.height / 2;
 
                 if (player.x + player.width >= canvas.width) {
-                    nextLevel();
-                    resetPositions();
+                    gameState = 'celebrating';
+                    celebrationFrame = 0;
                 }
 
                 if (defenders.some(checkCollision)) {
-                    resetPositions();
+                    gameState = 'caught';
+                    caughtFrame = 0;
                 }
+            } else if (gameState === 'celebrating') {
+                drawField();
+                drawPlayer();
+                drawDefenders();
+                drawBall();
+                drawLevel();
+                drawCelebration();
+                celebrationFrame++;
+
+                if (celebrationFrame >= celebrationDuration) {
+                    nextLevel();
+                    gameState = 'playing';
+                }
+            } else if (gameState === 'caught') {
+                drawCaught();
+                caughtFrame++;
+
+                if (caughtFrame >= caughtDuration) {
+                    resetPositions();
+                    gameState = 'playing';
+                }
+            } else {
+                drawField();
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.textAlign = 'center';
+                ctx.fillText('Game Over!', canvas.width / 2, canvas.height / 2);
             }
 
             requestAnimationFrame(update);
         }
 
-        canvas.addEventListener('click', (e) => {
+        canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            player.y = e.clientY - rect.top - player.height / 2;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
+        });
 
-            if (gameState === 'start') {
-                if (isPointInRect(clickX, clickY, canvas.width / 2 - 30, 60, 60, 25)) {
-                    gameState = 'playing';
-                    resetPositions();
-                    console.log('Game started');
-                }
+        canvas.addEventListener('click', () => {
+            if (gameState === 'gameover') {
+                level = 1;
+                defenders = [{
+                    x: 240,
+                    y: 46,
+                    width: 10,
+                    height: 10,
+                    color: '#EA4335',
+                    helmetColor: '#B23121',
+                    speed: 0.8,
+                    approachSpeed: 0.1
+                }];
+                resetPositions();
+                gameState = 'playing';
             } else if (gameState === 'playing') {
                 player.x += player.runSpeed;
                 if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
             }
         });
 
-        canvas.addEventListener('mousemove', (e) => {
-            if (gameState === 'playing') {
-                const rect = canvas.getBoundingClientRect();
-                player.y = e.clientY - rect.top - player.height / 2;
-                if (player.y < 0) player.y = 0;
-                if (player.y + player.height > canvas.height) player.y = canvas.height - player.height;
-            }
-        });
-
-        function checkCollision(defender) {
-            return (player.x < defender.x + defender.width &&
-                    player.x + player.width > defender.x &&
-                    player.y < defender.y + defender.height &&
-                    player.y + player.height > defender.y);
-        }
-
+        // Start the game loop
         update();
     </script>
 </body>
